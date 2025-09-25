@@ -1,0 +1,16 @@
+[
+  {
+    "origin": [
+      "https://animal-clinic-assistant.web.app",
+      "https://animal-clinic-assistant.firebaseapp.com",
+      "http://localhost:3000",
+      "https://9000-firebase-chart3-1758686382972.cluster-xpmcxs2fjnhg6xvn446ubtgpio.cloudworkstations.dev"
+    ],
+    "method": ["GET", "POST", "PUT", "HEAD"],
+    "responseHeader": [
+      "Content-Type",
+      "Access-Control-Allow-Origin"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

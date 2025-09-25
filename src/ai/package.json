@@ -1,0 +1,16 @@
+{
+  "name": "ai-functions",
+  "version": "1.0.0",
+  "description": "Firebase Functions for AI",
+  "main": "genkit.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@genkit-ai/googleai": "^1.14.1",
+    "genkit": "^1.14.1"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}
