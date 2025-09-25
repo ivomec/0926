@@ -3,24 +3,26 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { getAuth, signInAnonymously, signOut } from 'firebase/auth'; // 인증 관련 함수 추가
+import { getAuth, signInAnonymously, signOut } from 'firebase/auth';
+import { getAnalytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  apiKey: "AIzaSyAsUXIwdfQZXxNZtD9CQatVq2k4xaCoEGE",
+  authDomain: "project-7512361120128609234.firebaseapp.com",
+  projectId: "project-7512361120128609234",
   storageBucket: "project-7512361120128609234.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  messagingSenderId: "41205404623",
+  appId: "1:41205404623:web:dd2de9726c6af2645af8ba",
+  measurementId: "G-W9BTDGE2KP"
 };
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
 const db = getFirestore(app);
 const storage = getStorage(app);
-const auth = getAuth(app); // auth 객체 생성
+const auth = getAuth(app);
 
 // 익명 로그인 함수
 const signIn = async () => {
@@ -42,4 +44,4 @@ const logOut = async () => {
   }
 }
 
-export { app, db, storage, auth, signIn, logOut }; // auth, signIn, logOut export 추가
+export { app, db, storage, auth, signIn, logOut };
