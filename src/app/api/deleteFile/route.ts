@@ -1,36 +1,15 @@
 
 import { NextResponse } from 'next/server';
-import admin from 'firebase-admin';
-
-const initializeFirebaseAdmin = () => {
-  if (admin.apps.length > 0) {
-    return admin.app();
-  }
-  try {
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-      storageBucket: "project-7512361120128609234.firebasestorage.app",
-    });
-    return admin.app();
-  } catch (error: any) {
-    console.error('Firebase Admin initialization error:', error.message);
-    return null;
-  }
-};
+import { storage, firestore } from '@/lib/firebase-admin'; // 중앙 초기화 모듈에서 가져옵니다.
 
 export async function POST(request: Request) {
-  const app = initializeFirebaseAdmin();
-  if (!app) {
-    return new NextResponse(JSON.stringify({ message: 'Firebase Admin SDK initialization failed' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
-  }
-
   let data;
   try {
     data = await request.json();
   } catch (error) {
     return new NextResponse(JSON.stringify({ message: 'Invalid JSON body' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
-  
+
   const { storagePath, patientId, fileId } = data;
   console.log('API /deleteFile called with:', { storagePath, patientId, fileId });
 
@@ -39,14 +18,11 @@ export async function POST(request: Request) {
     return new NextResponse(JSON.stringify({ message: 'Missing required fields: storagePath, patientId, fileId' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
 
-  const bucket = admin.storage().bucket();
-  const firestore = admin.firestore();
-  
+  const bucket = storage.bucket(); // 이미 초기화된 storage 객체를 사용합니다.
   const fileRef = bucket.file(storagePath);
   const docRef = firestore.collection('patients').doc(patientId).collection('images').doc(fileId);
 
   try {
-    // Perform deletions concurrently and wait for both to settle
     const [storageResult, firestoreResult] = await Promise.allSettled([
       fileRef.delete(),
       docRef.delete()
@@ -56,24 +32,16 @@ export async function POST(request: Request) {
 
     if (storageResult.status === 'rejected') {
       const error: any = storageResult.reason;
-      // We are tolerant of "file not found" errors for storage, as it might have been deleted already.
-      if (error.code !== 404 && !(error.code === 5 && error.message.includes("No such object"))) {
+      if (error.code !== 404) { // 404 (Not Found)는 오류로 간주하지 않습니다.
         console.error('Error deleting file from storage:', error);
         errors.push(`Storage deletion failed: ${error.message}`);
-      } else {
-        console.log(`File not found in storage (considered non-fatal): ${storagePath}`);
       }
-    } else {
-      console.log(`Successfully deleted file from storage: ${storagePath}`);
     }
 
     if (firestoreResult.status === 'rejected') {
       const error: any = firestoreResult.reason;
-      // A failure to delete the Firestore document is always a critical error.
       console.error('CRITICAL: Error deleting Firestore document:', error);
       errors.push(`Firestore record deletion failed: ${error.message}`);
-    } else {
-      console.log(`Successfully deleted Firestore document: ${fileId}`);
     }
 
     if (errors.length > 0) {
@@ -84,8 +52,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'File and database record deleted successfully' });
 
   } catch (e) {
-      console.error('Unexpected error in deleteFile API handler:', e);
-      const error = e as Error;
-      return new NextResponse(JSON.stringify({ message: 'An unexpected server error occurred.', detail: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    console.error('Unexpected error in deleteFile API handler:', e);
+    const error = e as Error;
+    return new NextResponse(JSON.stringify({ message: 'An unexpected server error occurred.', detail: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
