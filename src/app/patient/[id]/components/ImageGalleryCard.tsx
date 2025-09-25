@@ -23,13 +23,13 @@ import type { Timestamp } from 'firebase/firestore';
 interface ImageGalleryCardProps {
   patientId: string;
   images: ImageRecord[];
+  setImages: React.Dispatch<React.SetStateAction<ImageRecord[]>>;
   openImageViewer: (images: ImageRecord[], startIndex: number) => void;
 }
 
 type ImageCategory = 'general' | 'pre-surgery' | 'post-surgery';
 
-const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, openImageViewer }) => {
-  const [localImages, setLocalImages] = React.useState(images);
+const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, setImages, openImageViewer }) => {
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -39,10 +39,6 @@ const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, 
   const [dragActive, setDragActive] = React.useState(false);
 
   const { toast } = useToast();
-
-  React.useEffect(() => {
-    setLocalImages(images);
-  }, [images]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -115,9 +111,9 @@ const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, 
   const handleDelete = async () => {
     if (!imageToDelete) return;
 
-    const originalImages = localImages;
-    const newImages = localImages.filter(image => image.id !== imageToDelete.id);
-    setLocalImages(newImages);
+    const originalImages = images;
+    const newImages = images.filter(image => image.id !== imageToDelete.id);
+    setImages(newImages); // 부모의 상태를 직접 업데이트
 
     try {
       const response = await fetch('/api/deleteFile', {
@@ -138,7 +134,7 @@ const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, 
       toast({ title: '성공', description: '파일이 삭제되었습니다.' });
     } catch (error: any) {
       console.error("Error deleting file: ", error);
-      setLocalImages(originalImages);
+      setImages(originalImages); // 실패 시 부모 상태를 롤백
       toast({ title: '오류', description: error.message || '파일 삭제 중 오류가 발생했습니다.', variant: 'destructive' });
     } finally {
       setDeleteAlertOpen(false);
@@ -152,7 +148,7 @@ const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, 
   };
 
   const renderImageGallery = (category: ImageCategory) => {
-    const filteredImages = localImages.filter(img => img.category === category);
+    const filteredImages = images.filter(img => img.category === category);
     return (
         <div
           className="mt-4"

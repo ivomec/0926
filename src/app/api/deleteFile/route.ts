@@ -32,38 +32,60 @@ export async function POST(request: Request) {
   }
   
   const { storagePath, patientId, fileId } = data;
+  console.log('API /deleteFile called with:', { storagePath, patientId, fileId });
 
   if (!storagePath || !patientId || !fileId) {
+    console.error('Missing required fields for deletion');
     return new NextResponse(JSON.stringify({ message: 'Missing required fields: storagePath, patientId, fileId' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
 
   const bucket = admin.storage().bucket();
   const firestore = admin.firestore();
-  const file = bucket.file(storagePath);
-  const imageDocRef = firestore.collection('patients').doc(patientId).collection('images').doc(fileId);
+  
+  const fileRef = bucket.file(storagePath);
+  const docRef = firestore.collection('patients').doc(patientId).collection('images').doc(fileId);
 
   try {
-    // First, try to delete the file from storage
-    await file.delete();
-  } catch (error: any) {
-    // If the file does not exist, it might have been deleted manually.
-    // Check for "object not found" error codes.
-    if (error.code === 404 || (error.code === 5 && error.message.includes("No such object"))) {
-      console.log(`File not found in storage: ${storagePath}. Proceeding to delete Firestore record.`);
+    // Perform deletions concurrently and wait for both to settle
+    const [storageResult, firestoreResult] = await Promise.allSettled([
+      fileRef.delete(),
+      docRef.delete()
+    ]);
+
+    const errors = [];
+
+    if (storageResult.status === 'rejected') {
+      const error: any = storageResult.reason;
+      // We are tolerant of "file not found" errors for storage, as it might have been deleted already.
+      if (error.code !== 404 && !(error.code === 5 && error.message.includes("No such object"))) {
+        console.error('Error deleting file from storage:', error);
+        errors.push(`Storage deletion failed: ${error.message}`);
+      } else {
+        console.log(`File not found in storage (considered non-fatal): ${storagePath}`);
+      }
     } else {
-      // For other errors (like permission issues), log them and fail.
-      console.error('Error deleting file from storage:', error);
-      return new NextResponse(JSON.stringify({ message: 'Error deleting file from storage', detail: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+      console.log(`Successfully deleted file from storage: ${storagePath}`);
     }
-  }
 
-  try {
-    // Regardless of storage deletion result (if it was a 'not found' error),
-    // we attempt to delete the Firestore document.
-    await imageDocRef.delete();
-    return NextResponse.json({ message: 'File and/or record deleted successfully' });
-  } catch (error: any) {
-    console.error('Error deleting Firestore document:', error);
-    return new NextResponse(JSON.stringify({ message: 'File was deleted from storage, but failed to delete Firestore record.', detail: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    if (firestoreResult.status === 'rejected') {
+      const error: any = firestoreResult.reason;
+      // A failure to delete the Firestore document is always a critical error.
+      console.error('CRITICAL: Error deleting Firestore document:', error);
+      errors.push(`Firestore record deletion failed: ${error.message}`);
+    } else {
+      console.log(`Successfully deleted Firestore document: ${fileId}`);
+    }
+
+    if (errors.length > 0) {
+      const message = `Deletion process encountered errors: ${errors.join('; ')}`;
+      return new NextResponse(JSON.stringify({ message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    return NextResponse.json({ message: 'File and database record deleted successfully' });
+
+  } catch (e) {
+      console.error('Unexpected error in deleteFile API handler:', e);
+      const error = e as Error;
+      return new NextResponse(JSON.stringify({ message: 'An unexpected server error occurred.', detail: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }

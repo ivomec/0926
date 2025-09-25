@@ -79,7 +79,7 @@ export default function PatientDetailView({ patientId }: { patientId: string }) 
     costs, setCosts,
     sodalimeRecord,
     isLoading,
-    images
+    images, setImages // setImages 가져오기
   } = usePatient(patientId);
   
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -363,6 +363,7 @@ export default function PatientDetailView({ patientId }: { patientId: string }) 
             <ImageGalleryCard 
                 patientId={patientId} 
                 images={images} 
+                setImages={setImages} // setImages 전달
                 openImageViewer={openImageViewer}
             />
             <CostInfoCard 
