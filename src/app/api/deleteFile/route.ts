@@ -9,7 +9,7 @@ const initializeFirebaseAdmin = () => {
   try {
     admin.initializeApp({
       credential: admin.credential.applicationDefault(),
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      storageBucket: "project-7512361120128609234.firebasestorage.app",
     });
     return admin.app();
   } catch (error: any) {
