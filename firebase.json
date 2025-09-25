@@ -5,6 +5,17 @@
   "storage": {
     "rules": "storage.rules"
   },
+  "hosting": {
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "id": "chart0926"
+    }
+  },
   "apphosting": {
     "backendId": "chart0926",
     "rootDir": "/",
