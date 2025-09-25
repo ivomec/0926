@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +29,7 @@ interface ImageGalleryCardProps {
 type ImageCategory = 'general' | 'pre-surgery' | 'post-surgery';
 
 const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, openImageViewer }) => {
+  const [localImages, setLocalImages] = React.useState(images);
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -36,15 +37,19 @@ const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, 
   const [imageToDelete, setImageToDelete] = React.useState<ImageRecord | null>(null);
   const [isDeleteAlertOpen, setDeleteAlertOpen] = React.useState(false);
   const [dragActive, setDragActive] = React.useState(false);
-  
+
   const { toast } = useToast();
-  
+
+  React.useEffect(() => {
+    setLocalImages(images);
+  }, [images]);
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
     handleUpload(files, currentUploadCategory);
   };
-  
+
   const triggerFileUpload = (category: ImageCategory) => {
     setCurrentUploadCategory(category);
     fileInputRef.current?.click();
@@ -56,10 +61,11 @@ const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, 
     const filesArray = Array.from(files);
 
     filesArray.forEach(file => {
-      const filePath = `images/${patientId}/${category}/${Date.now()}_${file.name}`;
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9\uAC00-\uD7A3_.-]/g, '_');
+      const filePath = `images/${patientId}/${category}/${Date.now()}_${sanitizedFileName}`;
       const storageRef = ref(storage, filePath);
       const uploadTask = uploadBytesResumable(storageRef, file);
-  
+
       uploadTask.on('state_changed', (snapshot) => {
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
         setUploadProgress(progress);
@@ -100,7 +106,7 @@ const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, 
       handleUpload(files, category);
     }
   };
-  
+
   const openDeleteConfirmationDialog = (item: ImageRecord) => {
     setImageToDelete(item);
     setDeleteAlertOpen(true);
@@ -108,27 +114,31 @@ const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, 
 
   const handleDelete = async () => {
     if (!imageToDelete) return;
-  
+
+    const originalImages = localImages;
+    const newImages = localImages.filter(image => image.id !== imageToDelete.id);
+    setLocalImages(newImages);
+
     try {
       const response = await fetch('/api/deleteFile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientId,
-          collectionName: 'images',
           fileId: imageToDelete.id,
           storagePath: imageToDelete.storagePath,
         }),
       });
-  
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Server error' }));
-        throw new Error(errorData.error || `Server responded with ${response.status}`);
+        const errorData = await response.json().catch(() => ({ message: 'Server error' }));
+        throw new Error(errorData.message || `Server responded with ${response.status}`);
       }
-  
+
       toast({ title: '성공', description: '파일이 삭제되었습니다.' });
     } catch (error: any) {
       console.error("Error deleting file: ", error);
+      setLocalImages(originalImages);
       toast({ title: '오류', description: error.message || '파일 삭제 중 오류가 발생했습니다.', variant: 'destructive' });
     } finally {
       setDeleteAlertOpen(false);
@@ -140,11 +150,11 @@ const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, 
     if (!timestamp) return '정보 없음';
     return format(timestamp.toDate(), formatStr, { locale: ko });
   };
-  
+
   const renderImageGallery = (category: ImageCategory) => {
-    const filteredImages = images.filter(img => img.category === category);
+    const filteredImages = localImages.filter(img => img.category === category);
     return (
-        <div 
+        <div
           className="mt-4"
           onDragEnter={handleDrag} onDragOver={handleDrag} onDragLeave={handleDrag}
           onDrop={(e) => handleDrop(e, category)}
@@ -159,8 +169,8 @@ const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, 
               {filteredImages.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                       {filteredImages.map((image, index) => (
-                          <div 
-                            key={image.id} 
+                          <div
+                            key={image.id}
                             className="relative aspect-square group overflow-hidden rounded-lg shadow-md cursor-pointer"
                             onClick={() => openImageViewer(filteredImages, index)}
                           >
@@ -223,7 +233,7 @@ const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, 
         type="file" ref={fileInputRef} onChange={handleFileSelect}
         className="hidden" accept="image/*" disabled={isUploading} multiple
       />
-      
+
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -241,5 +251,3 @@ const ImageGalleryCard: React.FC<ImageGalleryCardProps> = ({ patientId, images, 
 };
 
 export default React.memo(ImageGalleryCard);
-
-    

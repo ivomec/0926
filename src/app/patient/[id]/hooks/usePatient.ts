@@ -84,7 +84,7 @@ export default function usePatient(patientId: string) {
     additionalTreatments, setAdditionalTreatments,
     selectedPackages, setSelectedPackages,
     costs, setCosts,
-    images, setImages,
+    images,
     sodalimeRecord,
     isLoading,
     analysisResult, setAnalysisResult,
