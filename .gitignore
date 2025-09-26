@@ -3,6 +3,7 @@
 
 # Firebase config
 src/lib/firebase.ts
+google-service-account.json
 
 # Build output
 .next/
