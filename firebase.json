@@ -28,11 +28,5 @@
       "functions"
     ],
     "alwaysDeployFromSource": true
-  },
-  "functions": [
-    {
-      "source": ".firebase/project-7512361120128609234/functions",
-      "codebase": "firebase-frameworks-project-7512361120128609234"
-    }
-  ]
+  }
 }
