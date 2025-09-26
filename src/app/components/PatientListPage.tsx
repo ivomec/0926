@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, ArrowUpDown, Trash2 } from 'lucide-react';
+import { Plus, ArrowUpDown, Trash2, Mic } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingOverlay } from '@/components/LoadingOverlay';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +32,6 @@ type FilterType = 'all' | '개' | '고양이';
 
 function formatDate(timestamp: Timestamp | Date | null | undefined) {
   if (!timestamp) return 'N/A';
-  // Handle both Firestore Timestamps and JS Dates
   const date = timestamp instanceof Timestamp ? timestamp.toDate() : timestamp;
   if (!(date instanceof Date) || isNaN(date.getTime())) {
     return 'Invalid Date';
@@ -68,6 +67,8 @@ export default function PatientListPage() {
   const [newGuardianName, setNewGuardianName] = useState('');
   const [newGuardianPhone, setNewGuardianPhone] = useState('');
   const [isAddingGuardian, setIsAddingGuardian] = useState(false);
+  const [aiGreetingMessage, setAiGreetingMessage] = useState('버튼을 눌러 AI의 음성 인사를 확인하세요.');
+  const [isAiGreetingLoading, setIsAiGreetingLoading] = useState(false);
 
   const { toast } = useToast();
   const router = useRouter();
@@ -280,6 +281,63 @@ export default function PatientListPage() {
     router.push(`/guardian/${encodedPhone}`);
   }, [router]);
 
+ const handleAiConnectionTest = async () => {
+    setIsAiGreetingLoading(true);
+    setAiGreetingMessage('AI가 원장님을 위한 인사말을 생성하고 있어요...');
+    try {
+      const greetingResponse = await fetch('/api/ai-greeting', {
+        method: 'POST',
+      });
+
+      if (!greetingResponse.ok) {
+        let errorDetails = '서버 응답을 확인하지 못했습니다.';
+        try {
+            const errorBody = await greetingResponse.json();
+            errorDetails = errorBody.error || errorBody.details || JSON.stringify(errorBody);
+        } catch (e) {
+            errorDetails = greetingResponse.statusText;
+        }
+        throw new Error(`AI 인사말을 가져오는데 실패했습니다: ${errorDetails}`);
+      }
+
+      const greetingData = await greetingResponse.json();
+      const greetingText = greetingData.message;
+      setAiGreetingMessage(greetingText);
+
+      const ttsResponse = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: greetingText }),
+      });
+
+      if (!ttsResponse.ok) {
+        let errorDetails = '서버로부터 상세 오류를 받지 못했습니다.';
+        try {
+          const errorBody = await ttsResponse.json();
+          errorDetails = errorBody.details || JSON.stringify(errorBody);
+        } catch (e) {
+           errorDetails = ttsResponse.statusText;
+        }
+        throw new Error(`TTS 오디오 생성 실패: ${errorDetails}`);
+      }
+      
+      const audioBlob = await ttsResponse.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.play();
+
+    } catch (error: any) {
+      console.error("AI 연결 테스트 중 오류:", error);
+      setAiGreetingMessage(`오류 발생: ${error.message}`);
+      toast({
+        title: 'AI 연결 테스트 오류',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAiGreetingLoading(false);
+    }
+  };
 
   if (isLoading) {
     return <LoadingOverlay text="목록을 불러오는 중..." />;
@@ -293,6 +351,23 @@ export default function PatientListPage() {
             보호자를 선택하거나 새로 추가하세요.
           </p>
         </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>AI 비서</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className='flex items-center gap-4'>
+            <Button onClick={handleAiConnectionTest} disabled={isAiGreetingLoading}>
+              <Mic className="mr-2 h-4 w-4" />
+              {isAiGreetingLoading ? '음성 생성 중...' : 'AI 음성 인사'}
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground italic">
+            {aiGreetingMessage}
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

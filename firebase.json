@@ -3,7 +3,8 @@
     "rules": "firestore.rules"
   },
   "storage": {
-    "rules": "storage.rules"
+    "rules": "storage.rules",
+    "bucket": "project-7512361120128609234.firebasestorage.app"
   },
   "hosting": {
     "source": ".",
@@ -13,7 +14,7 @@
       "**/node_modules/**"
     ],
     "frameworksBackend": {
-      "id": "chart0926"
+      "region": "us-central1"
     }
   },
   "apphosting": {
@@ -25,6 +26,13 @@
       "firebase-debug.log",
       "firebase-debug.*.log",
       "functions"
-    ]
-  }
+    ],
+    "alwaysDeployFromSource": true
+  },
+  "functions": [
+    {
+      "source": ".firebase/project-7512361120128609234/functions",
+      "codebase": "firebase-frameworks-project-7512361120128609234"
+    }
+  ]
 }
