@@ -14,7 +14,7 @@ console.log("[API] Speech-to-Text 클라이언트 초기화 완료");
 // Vertex AI 클라이언트 초기화 (서비스 계정 기반)
 console.log("[API] Vertex AI 클라이언트 초기화 시작");
 const vertex_ai = new VertexAI({
-  project: process.env.GOOGLE_CLOUD_PROJECT || '',
+  project: 'project-7512361120128609234', // 프로젝트 ID 직접 명시
   location: 'asia-northeast3', // 서울 리전
 });
 console.log("[API] Vertex AI 클라이언트 초기화 완료");
