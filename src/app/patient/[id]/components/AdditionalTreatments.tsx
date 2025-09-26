@@ -7,13 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Syringe, Droplets, HeartPulse, Sparkles, Home, Pill, BadgePlus, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFormContext } from 'react-hook-form';
 import type { PatientFormValues } from './PatientDetailView';
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
+// (중략)
 
 interface AdditionalTreatmentsProps {
   patient: Patient;
@@ -41,7 +41,6 @@ const AdditionalTreatments: React.FC<AdditionalTreatmentsProps> = ({ patient, se
   const { watch } = useFormContext<PatientFormValues>();
   const [openSheet, setOpenSheet] = React.useState<TreatmentCategory['id'] | null>(null);
   const [localSelection, setLocalSelection] = React.useState<SelectedTreatment[]>([]);
-  const isInitialized = React.useRef(false);
 
   const species = watch('species');
   const weight = watch('weight');
@@ -50,83 +49,6 @@ const AdditionalTreatments: React.FC<AdditionalTreatmentsProps> = ({ patient, se
     if (!species || !weight) return {};
     return additionalTreatmentsConfig({ ...patient, species, weight });
   }, [patient, species, weight]);
-
-  React.useEffect(() => {
-    if (isInitialized.current || !config.categories || !species || selectedTreatments.length > 0) {
-        return;
-    }
-  
-    let initialSelection: SelectedTreatment[] = [];
-    
-    if (species === '개') {
-        const defaultSelections = [
-            { id: 'narcotic_injection' },
-            { id: 'sustained_analgesia' },
-            { id: 'pain_control_pump' },
-            { id: 'antibiotic_injection' },
-            { id: 'laser_therapy', optionKey: 'local' },
-            { id: 'oral_meds', optionKey: '7d' },
-            { id: 'capsule', optionKey: '7d' },
-            { id: 'liquid_analgesic', optionKey: '3d' },
-        ];
-        
-        const allItems = Object.values(config.itemsByCategoryId || {}).flat();
-        
-        defaultSelections.forEach(selection => {
-            const item = allItems.find(i => i.id === selection.id);
-            if (!item) return;
-
-            const option = selection.optionKey ? item.options.find(o => o.key === selection.optionKey) : item.options[0];
-            if (option) {
-                initialSelection.push({
-                    id: item.id,
-                    optionKey: option.key,
-                    price: option.price,
-                    name: `${item.name}${option.label ? `: ${option.label}` : ''}`,
-                });
-            }
-        });
-    } else if (species === '고양이') {
-        const defaultSelections = [
-            { id: 'anesthesia_extension', optionKey: '60min' },
-            { id: 'local_anesthesia', optionKey: '2_sites' },
-            { id: 'narcotic_injection' },
-            { id: 'sustained_analgesia' },
-            { id: 'pain_control_pump' },
-            { id: 'narcotic_patch', optionKey: '5ug' },
-            { id: 'antibiotic_injection' },
-            { id: 'laser_therapy', optionKey: 'local' },
-            { id: 'oral_meds', optionKey: '7d' },
-            { id: 'capsule', optionKey: '7d' },
-            { id: 'liquid_analgesic', optionKey: '3d' },
-            { id: 'hexidine_spray' },
-            { id: 'oral_ointment' },
-        ];
-        const allItems = Object.values(config.itemsByCategoryId || {}).flat();
-        
-        defaultSelections.forEach(selection => {
-            const item = allItems.find(i => i.id === selection.id);
-            if (!item) return;
-
-            const option = selection.optionKey ? item.options.find(o => o.key === selection.optionKey) : item.options[0];
-            if (option) {
-                initialSelection.push({
-                    id: item.id,
-                    optionKey: option.key,
-                    price: option.price,
-                    name: `${item.name}${option.label ? `: ${option.label}` : ''}`,
-                });
-            }
-        });
-    }
-
-    if(initialSelection.length > 0) {
-        onTreatmentsChange(initialSelection);
-        isInitialized.current = true;
-    }
-
-  }, [config, species, selectedTreatments, onTreatmentsChange]);
-
 
   React.useEffect(() => {
     if (openSheet) {

@@ -30,6 +30,23 @@ export const patientSchema = z.object({
   cuffGuide: z.string().optional(),
 });
 
+export const statusMap: { [key: string]: { label: string; value?: string[] } } = {
+  PD: { label: '치주염', value: ['1', '2', '3', '4'] },
+  GR: { label: '치은염', value: ['1', '2', '3'] },
+  FX: { label: '치아파절' },
+  AT: { label: '치아마모' },
+  M: { label: '실종치' },
+  CR: { label: '치석', value: ['1', '2', '3'] },
+};
+
+export const procedureMap: { [key: string]: { label: string } } = {
+  SURG_EXT: { label: '수술적 발치' },
+  EXT: { label: '단순 발치' },
+  RESIN: { label: '레진' },
+  SC: { label: '스케일링' },
+  RP: { label: '루트 플래닝' },
+};
+
 export interface Costs {
   procedure: number;
   additional: number;

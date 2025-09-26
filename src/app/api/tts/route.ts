@@ -1,10 +1,9 @@
 
-import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { TextToSpeechClient } from '@google-cloud/text-to-speech';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Google Cloud 클라이언트 초기화
+const ttsClient = new TextToSpeechClient();
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,22 +16,32 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const mp3 = await openai.audio.speech.create({
-      model: "tts-1",
-      voice: "shimmer",
-      input: text,
-    });
+    // Google Cloud TTS 요청 객체 구성
+    const ttsRequest = {
+      input: { text },
+      // 가장 자연스러운 한국어 여성 음성 (Neural2)
+      voice: { languageCode: 'ko-KR', name: 'ko-KR-Neural2-A' }, 
+      audioConfig: { audioEncoding: 'MP3' as const },
+    };
 
-    const buffer = Buffer.from(await mp3.arrayBuffer());
+    // TTS API 호출
+    const [response] = await ttsClient.synthesizeSpeech(ttsRequest);
+    
+    if (!response.audioContent) {
+        throw new Error('Audio content is null or undefined');
+    }
 
-    return new Response(buffer, {
+    // Buffer로 변환하여 응답
+    const audioBuffer = Buffer.from(response.audioContent);
+
+    return new Response(audioBuffer, {
       headers: {
         'Content-Type': 'audio/mpeg',
       },
     });
 
   } catch (error) {
-    console.error('TTS Error:', error);
+    console.error('Google TTS Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new NextResponse(JSON.stringify({ error: 'Failed to generate audio', details: errorMessage }), { 
       status: 500, 
