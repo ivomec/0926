@@ -1,11 +1,23 @@
-# Firebase
-.firebase
 
 # Dependencies
-/node_modules/
+/node_modules
+/src/ai/node_modules
 
-# Next.js build output
+# Build artifacts
 /.next/
+/out/
+/build/
+/src/ai/lib/
 
-# Other
-next-env.d.ts
+# IDE and environment specific
+.idx/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env files
+.env.*
+.env.local
+.env

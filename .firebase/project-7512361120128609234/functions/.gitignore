@@ -1,0 +1,13 @@
+# Dependencies
+/node_modules
+
+# Build artifacts
+/lib
+/build
+/.next
+
+# Log files
+*.log
+
+# Local environment variables
+.env
